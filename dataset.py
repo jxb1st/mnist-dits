@@ -13,7 +13,8 @@ class MNIST(Dataset):
         
     def __len__(self):
         return len(self.ds)
-    
+
+    # 返回图片和对应的id，并对图片做缩放处理
     def __getitem__(self,index):
         img,label=self.ds[index]
         return self.img_convert(img)/255.0,label

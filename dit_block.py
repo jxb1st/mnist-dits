@@ -46,7 +46,7 @@ class DiTBlock(nn.Module):
         # layer norm
         y=self.ln1(x) # (batch,seq_len,emb_size)
         
-        # scale&shift
+        # scale&shift 通过一系列法则，加入condition信息
         y=y*(1+gamma1_val.unsqueeze(1))+beta1_val.unsqueeze(1) 
 
         # attention

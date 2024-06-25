@@ -8,35 +8,38 @@ class DiT(nn.Module):
     def __init__(self,img_size,patch_size,channel,emb_size,label_num,dit_num,head):
         super().__init__()
         
-        self.patch_size=patch_size
-        self.patch_count=img_size//self.patch_size
+        self.patch_size=patch_size # patch的尺寸
+        self.patch_count=img_size//self.patch_size # patch的个数
         self.channel=channel
         
         # patchify
+        # 通过卷积把每一个小patch(patch_size*patch_size*3)变成一个向量(1*1*channel*patch_size**2)，总体积是不变的，然后再把所有patch重新拼在一起，最后再拉平(flatten)
         self.conv=nn.Conv2d(in_channels=channel,out_channels=channel*patch_size**2,kernel_size=patch_size,padding=0,stride=patch_size) 
-        self.patch_emb=nn.Linear(in_features=channel*patch_size**2,out_features=emb_size) 
+        self.patch_emb=nn.Linear(in_features=channel*patch_size**2,out_features=emb_size)
+        # 加入可训练的positional embedding
         self.patch_pos_emb=nn.Parameter(torch.rand(1,self.patch_count**2,emb_size))
         
         # time emb
+        # 对时间t进行token化，即把一个数字变成一个向量
         self.time_emb=nn.Sequential(
-            TimeEmbedding(emb_size),
+            TimeEmbedding(emb_size), # 通过一系列规则将emb_size变成向量
             nn.Linear(emb_size,emb_size),
             nn.ReLU(),
             nn.Linear(emb_size,emb_size)
         )
 
-        # label emb
+        # label emb 将label embedding成向量，可训练
         self.label_emb=nn.Embedding(num_embeddings=label_num,embedding_dim=emb_size)
         
         # DiT Blocks
-        self.dits=nn.ModuleList()
+        self.dits=nn.ModuleList() # ModuleList用于多个相同module的叠加
         for _ in range(dit_num):
             self.dits.append(DiTBlock(emb_size,head))
         
         # layer norm
         self.ln=nn.LayerNorm(emb_size)
         
-        # linear back to patch
+        # linear back to patch (也就是说embedding大小和patch大小不一定要一致)
         self.linear=nn.Linear(emb_size,channel*patch_size**2)
         
     def forward(self,x,t,y): # x:(batch,channel,height,width)   t:(batch,)  y:(batch,)
